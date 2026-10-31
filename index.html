@@ -8,10 +8,12 @@
   <meta name="theme-color" content="#e6007e">
   <!-- The favicon is just an emoji drawn inside an SVG, so we need no image file -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎬</text></svg>">
-  <!-- "Baloo 2" is a fun, rounded font that supports both English and Hindi (Devanagari) -->
+  <!-- "Baloo 2" is a fun, rounded font that supports both English and Hindi (Devanagari).
+       "Noto Color Emoji" brings its own emoji, because older devices (like many Fire TV Sticks)
+       show newer emoji as empty boxes. Only the emoji actually used on the page get downloaded. -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;600;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;600;800&family=Noto+Color+Emoji&display=swap" rel="stylesheet">
 
   <style>
     /* ===================================================================
@@ -61,7 +63,7 @@
     html { -webkit-text-size-adjust: 100%; }
     body {
       margin: 0;
-      font-family: "Baloo 2", system-ui, -apple-system, "Segoe UI", sans-serif;
+      font-family: "Baloo 2", system-ui, -apple-system, "Segoe UI", sans-serif, "Noto Color Emoji";
       font-size: 17px;
       line-height: 1.4;
       color: var(--text);
