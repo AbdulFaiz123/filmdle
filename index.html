@@ -258,7 +258,7 @@
     .countdown strong { font-size: 1.4rem; display: block; color: var(--purple); font-variant-numeric: tabular-nums; }
 
     /* ===================================================================
-       9. POPUPS (<dialog>), TOAST, CONFETTI, FOOTER
+       9. POPUPS (<dialog>), TOAST, CONFETTI, FOOTER, EMOJI MEANINGS
        =================================================================== */
     dialog {
       border: 3px solid var(--pink);
@@ -300,7 +300,40 @@
 
     footer { text-align: center; padding-bottom: 32px; }
 
-    /* People who ask their device for less motion get no blinking or falling things */
+    /* Emoji plot explained on the result card */
+    .decoded { text-align: left; margin: 12px 0; }
+    .decoded ol { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 4px; }
+    .decoded li { display: flex; align-items: center; gap: 10px; }
+    .decoded-emoji { font-size: 1.5rem; width: 2rem; text-align: center; flex: none; }
+
+    /* ===================================================================
+       10. BIG SCREENS (laptop, Fire TV)
+       Two columns: clues on the left, guessing on the right.
+       =================================================================== */
+    @media (min-width: 900px) {
+      main {
+        max-width: 1100px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0 24px;
+        align-items: start;
+      }
+      .mode-bar, #loadError { grid-column: 1 / -1; }
+      .top-bar, footer { max-width: 1100px; }
+      .marquee { padding: 16px 16px 12px; }
+    }
+    /* A 1080p TV browser shows a very wide page; make everything bigger so it reads from the sofa */
+    @media (min-width: 1600px) {
+      body { zoom: 1.6; }
+    }
+    /* TV remotes move focus with arrows, so the focused button must be very easy to see */
+    button:focus-visible, a:focus-visible {
+      outline: 4px solid var(--gold);
+      outline-offset: 3px;
+      transform: scale(1.06);
+    }
+
+    /* People who ask their device for less motion get no blinking, zooming or falling things */
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { animation: none !important; transition: none !important; }
     }
@@ -311,7 +344,10 @@
   <!-- ===================== HEADER ===================== -->
   <header class="marquee">
     <div class="top-bar">
-      <button id="helpBtn" class="icon-btn" aria-label="How to play">?</button>
+      <div class="header-buttons">
+        <button id="helpBtn" class="icon-btn" aria-label="How to play">?</button>
+        <button id="soundBtn" class="icon-btn" aria-label="Sound on">🔊</button>
+      </div>
       <h1 class="logo">FILM<span>DLE</span></h1>
       <div class="header-buttons">
         <button id="langBtn" class="icon-btn" aria-label="Switch language">हिं</button>
@@ -330,12 +366,16 @@
       <button id="modeBtn" class="pill"></button>
     </div>
 
+    <!-- On a phone these two columns sit on top of each other; on a TV or laptop they sit side by side -->
+    <div class="col-left">
     <!-- The six clues. They are filled in by JavaScript. -->
     <section class="card" aria-live="polite">
       <h2 data-i18n="clues"></h2>
       <ol id="clueList" class="clue-list"></ol>
     </section>
+    </div>
 
+    <div class="col-right">
     <!-- Shown when the game is over -->
     <section id="result" class="card result" hidden></section>
 
@@ -355,6 +395,7 @@
 
     <!-- Earlier guesses with their comparison tiles -->
     <section id="history"></section>
+    </div>
   </main>
 
   <footer class="muted" data-i18n="footer"></footer>
@@ -398,7 +439,7 @@ const TEXT = {
   en: {
     tagline: "Guess the Bollywood movie of the day",
     clues: "Clues",
-    clueNames: ["Emoji plot", "Genre & decade", "Release year", "Director", "Lead actors' initials", "Famous song"],
+    clueNames: ["Emoji plot", "Genre", "Release year", "Director", "Lead actors' initials", "Famous song"],
     locked: "Unlocks after a wrong guess",
     placeholder: "Type a movie name…",
     guess: "Guess",
@@ -410,7 +451,8 @@ const TEXT = {
     year: "Year", director: "Director", actor: "Lead", genre: "Genre",
     later: "The movie is later", earlier: "The movie is earlier",
     noShared: "None shared",
-    decade: "{d}s",
+    emojiDecoded: "The emoji plot, decoded",
+    soundOn: "Sound on", soundOff: "Sound off",
     win: "You got it! 🎉",
     winIn: "Solved in {n}/{max}",
     lose: "So close! 🎭",
@@ -446,12 +488,13 @@ const TEXT = {
       </div>
       <p><b>Year:</b> ⬆️ the movie came out later, ⬇️ earlier, 🟨 within 3 years.<br>
          <b>Genre:</b> 🟨 means some genres overlap.</p>
-      <p>A new movie arrives every midnight (India time). Want more? Try <b>Practice</b> mode.</p>`
+      <p>A new movie arrives every midnight (India time). Want more? Try <b>Practice</b> mode.</p>
+      <p>📺 <b>On a TV:</b> use the remote's arrow buttons to move around and the middle button to select. 🔊 turns the sounds on or off.</p>`
   },
   hi: {
     tagline: "आज की बॉलीवुड फ़िल्म पहचानिए",
     clues: "सुराग",
-    clueNames: ["इमोजी कहानी", "शैली और दशक", "रिलीज़ वर्ष", "निर्देशक", "मुख्य कलाकारों के आद्याक्षर", "मशहूर गाना"],
+    clueNames: ["इमोजी कहानी", "शैली", "रिलीज़ वर्ष", "निर्देशक", "मुख्य कलाकारों के आद्याक्षर", "मशहूर गाना"],
     locked: "ग़लत अंदाज़े के बाद खुलेगा",
     placeholder: "फ़िल्म का नाम लिखें…",
     guess: "अंदाज़ा",
@@ -463,7 +506,8 @@ const TEXT = {
     year: "वर्ष", director: "निर्देशक", actor: "कलाकार", genre: "शैली",
     later: "फ़िल्म बाद की है", earlier: "फ़िल्म पहले की है",
     noShared: "कोई साझा नहीं",
-    decade: "{d} का दशक",
+    emojiDecoded: "इमोजी कहानी का मतलब",
+    soundOn: "आवाज़ चालू", soundOff: "आवाज़ बंद",
     win: "सही जवाब! 🎉",
     winIn: "{n}/{max} में हल किया",
     lose: "बस थोड़ा सा चूक गए! 🎭",
@@ -499,14 +543,16 @@ const TEXT = {
       </div>
       <p><b>वर्ष:</b> ⬆️ फ़िल्म बाद में आई, ⬇️ पहले आई, 🟨 तीन साल के अंदर।<br>
          <b>शैली:</b> 🟨 का मतलब कुछ शैलियाँ मिलती हैं।</p>
-      <p>हर रात 12 बजे (भारतीय समय) नई फ़िल्म आती है। और खेलना है? <b>अभ्यास</b> मोड आज़माएँ।</p>`
+      <p>हर रात 12 बजे (भारतीय समय) नई फ़िल्म आती है। और खेलना है? <b>अभ्यास</b> मोड आज़माएँ।</p>
+      <p>📺 <b>टीवी पर:</b> रिमोट के तीर वाले बटन से चलें और बीच वाले बटन से चुनें। 🔊 से आवाज़ चालू या बंद करें।</p>`
   }
 };
 
 // Genre names in Hindi (English names come straight from movies.json)
 const GENRE_HI = {
   Action: "एक्शन", Adventure: "रोमांच", Biography: "जीवनी", Comedy: "कॉमेडी",
-  Crime: "क्राइम", Drama: "ड्रामा", Family: "पारिवारिक", Horror: "हॉरर",
+  Crime: "क्राइम", Drama: "ड्रामा", Family: "पारिवारिक", Fantasy: "फ़ैंटेसी",
+  Historical: "ऐतिहासिक", Horror: "हॉरर",
   Musical: "म्यूज़िकल", Mystery: "रहस्य", Romance: "रोमांस", Satire: "व्यंग्य",
   "Sci-Fi": "साइंस-फ़िक्शन", Sports: "खेल", Spy: "जासूसी", Thriller: "थ्रिलर", War: "युद्ध"
 };
@@ -645,7 +691,8 @@ function startDaily() {
   const saved = store.get("filmdle-daily", null);
   let guesses = [];
   let status = "playing";
-  if (saved && saved.day === day) {
+  // Only restore if it's the same day AND the same movie (the list may have changed since)
+  if (saved && saved.day === day && saved.answerId === answer.id) {
     guesses = saved.guesses.map(id => movieById[id]).filter(Boolean);
     status = saved.status;
   }
@@ -670,6 +717,7 @@ function startPractice() {
 function saveDaily() {
   store.set("filmdle-daily", {
     day: todayIndex(),
+    answerId: game.answer.id,
     guesses: game.guesses.map(m => m.id),
     status: game.status
   });
@@ -689,8 +737,8 @@ function submitGuess() {
   const input = document.getElementById("guessInput");
   const movie = findTypedMovie(input.value);
 
-  if (!movie) { toast(t("notInList")); return; }
-  if (game.guesses.includes(movie)) { toast(t("already")); return; }
+  if (!movie) { toast(t("notInList")); playSound("oops"); return; }
+  if (game.guesses.includes(movie)) { toast(t("already")); playSound("oops"); return; }
 
   game.guesses.push(movie);
   if (movie === game.answer) game.status = "won";
@@ -706,7 +754,9 @@ function submitGuess() {
   closeSuggestions();
   renderAll();
 
-  if (game.status === "won") confetti();
+  if (game.status === "won") { confetti(); playSound("win"); }
+  else if (game.status === "lost") playSound("lose");
+  else playSound("wrong");
   if (game.status !== "playing") {
     document.getElementById("result").scrollIntoView({ behavior: "smooth", block: "start" });
   }
@@ -778,6 +828,7 @@ function renderStaticText() {
   document.getElementById("guessInput").placeholder = t("placeholder");
   document.getElementById("helpBody").innerHTML = t("help"); // our own fixed text, safe to use as HTML
   document.getElementById("langBtn").textContent = lang === "en" ? "हिं" : "EN";
+  renderSoundButton();
 }
 
 function renderModeBar() {
@@ -787,10 +838,9 @@ function renderModeBar() {
 }
 
 function clueValues(m) {
-  const decade = t("decade", { d: Math.floor(m.year / 10) * 10 });
   return [
-    m.emoji,
-    `${m.genres.map(genreName).join(" / ")} · ${decade}`,
+    m.emojiPlot.map(([emoji]) => emoji).join(""), // just the emoji, the meanings come after the game
+    m.genres.map(genreName).join(" / "),
     String(m.year),
     m.director,
     m.leadActors.slice(0, 2).map(initials).join(" & "),
@@ -867,6 +917,18 @@ function renderResult() {
       facts.append(row);
     });
   box.append(facts);
+
+  // Explain each emoji of the plot clue, in order
+  const decoded = el("div", "decoded");
+  decoded.append(el("b", "", t("emojiDecoded")));
+  const steps = el("ol");
+  m.emojiPlot.forEach(([emoji, meaning]) => {
+    const li = el("li");
+    li.append(el("span", "decoded-emoji", emoji), document.createTextNode(meaning));
+    steps.append(li);
+  });
+  decoded.append(steps);
+  box.append(decoded);
 
   const fact = el("div", "fun-fact");
   fact.append(el("b", "", "💡 " + t("funFact") + ": "), document.createTextNode(m.funFact));
@@ -966,6 +1028,7 @@ function pickMatch(i) {
   picked = matches[i].movie;
   document.getElementById("guessInput").value = picked.title;
   closeSuggestions();
+  playSound("pick");
 }
 
 function closeSuggestions() {
@@ -977,17 +1040,27 @@ function closeSuggestions() {
 }
 
 function onInputKey(e) {
+  const input = e.target;
   const open = !document.getElementById("suggestions").hidden;
   if (e.key === "ArrowDown") {
     e.preventDefault();
-    if (!open) return showSuggestions();
+    if (!open) {
+      // Re-open the list if there's text; otherwise leave the box (TV remote)
+      if (input.value) showSuggestions();
+      if (document.getElementById("suggestions").hidden) moveFocus("ArrowDown");
+      return;
+    }
     activeIndex = (activeIndex + 1) % matches.length;
     highlight();
   } else if (e.key === "ArrowUp") {
     e.preventDefault();
-    if (!open) return;
+    if (!open) return moveFocus("ArrowUp");
     activeIndex = (activeIndex - 1 + matches.length) % matches.length;
     highlight();
+  } else if ((e.key === "ArrowLeft" || e.key === "ArrowRight") && !input.value) {
+    // Empty box: left/right jump to the neighbouring button (TV remote)
+    e.preventDefault();
+    moveFocus(e.key);
   } else if (e.key === "Enter") {
     e.preventDefault();
     // First Enter picks the highlighted suggestion, the next Enter makes the guess
@@ -1088,7 +1161,94 @@ function renderStats() {
 }
 
 /* =====================================================================
-   11. COUNTDOWN, CONFETTI
+   11. SOUND EFFECTS
+   Every sound is generated in code with the Web Audio API: no audio
+   files and no film music (copyright). A sound is just a few short
+   "notes" played at the right moments.
+   ===================================================================== */
+let soundOn = store.get("filmdle-sound", true);
+let audio = null; // browsers only allow sound after a tap or key press, so we create it lazily
+
+function audioContext() {
+  if (!audio) {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return null;
+    audio = new AudioCtx();
+  }
+  if (audio.state === "suspended") audio.resume();
+  return audio;
+}
+
+// Play one note. `at` = seconds from now. `slideTo` bends the pitch while it plays.
+function note(freq, at, length, { type = "triangle", volume = 0.2, slideTo = null } = {}) {
+  const ctx = audioContext();
+  if (!ctx) return;
+  const start = ctx.currentTime + at;
+  const osc = ctx.createOscillator(); // makes the tone
+  const gain = ctx.createGain();      // controls the volume
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, start);
+  if (slideTo) osc.frequency.exponentialRampToValueAtTime(slideTo, start + length);
+  // Fade in and out quickly so the note doesn't "click"
+  gain.gain.setValueAtTime(0.0001, start);
+  gain.gain.exponentialRampToValueAtTime(volume, start + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + length);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start(start);
+  osc.stop(start + length + 0.05);
+}
+
+// A drum hit: a deep "dhum" (pitch falls fast) or a short, high "tak"
+function drum(at, low = true) {
+  if (low) note(150, at, 0.35, { type: "sine", volume: 0.6, slideTo: 45 });
+  else note(900, at, 0.08, { type: "square", volume: 0.08, slideTo: 300 });
+}
+
+const SOUNDS = {
+  // Tiny "blip" when you pick a movie from the list
+  pick() { note(880, 0, 0.08, { type: "sine", volume: 0.12 }); },
+  // Low buzz when the typed name isn't in the list
+  oops() { note(140, 0, 0.18, { type: "square", volume: 0.07 }); },
+  // TV-serial drama for a wrong guess: "DHIN! DHIN! DHIIIN!" ...then a sparkle as the next clue unlocks
+  wrong() {
+    [0, 0.22, 0.44].forEach((at, i) => {
+      const length = i === 2 ? 0.9 : 0.2;
+      drum(at);
+      note(110, at, length, { type: "sawtooth", volume: 0.12 });
+      note(116.5, at, length, { type: "sawtooth", volume: 0.1 }); // slightly clashing note = tension
+    });
+    [1320, 1760, 2640].forEach((f, i) => note(f, 1.2 + i * 0.07, 0.25, { type: "sine", volume: 0.07 }));
+  },
+  // Dhol beat, then a happy rising tune and a big final chord for a win
+  win() {
+    [[0, true], [0.15, false], [0.3, true], [0.45, true], [0.6, false], [0.75, true]]
+      .forEach(([at, low]) => drum(at, low));
+    [523, 587, 659, 784, 880, 1047] // a cheerful five-note scale, going up
+      .forEach((f, i) => note(f, 0.9 + i * 0.11, 0.18, { type: "square", volume: 0.08 }));
+    [523, 659, 784, 1047].forEach(f => note(f, 1.6, 0.9, { type: "triangle", volume: 0.1 }));
+  },
+  // Sad trombone for a loss: "wah... wah... wah... waaaah"
+  lose() {
+    [[294, 0], [277, 0.4], [262, 0.8]]
+      .forEach(([f, at]) => note(f, at, 0.38, { type: "sawtooth", volume: 0.1, slideTo: f * 0.97 }));
+    note(247, 1.2, 1.1, { type: "sawtooth", volume: 0.1, slideTo: 220 });
+  }
+};
+
+function playSound(name) {
+  if (!soundOn) return;
+  try { SOUNDS[name](); } catch (e) { /* sound is a bonus; never let it break the game */ }
+}
+
+function renderSoundButton() {
+  const btn = document.getElementById("soundBtn");
+  btn.textContent = soundOn ? "🔊" : "🔇";
+  btn.setAttribute("aria-label", soundOn ? t("soundOn") : t("soundOff"));
+  btn.setAttribute("aria-pressed", String(soundOn));
+}
+
+/* =====================================================================
+   12. COUNTDOWN, CONFETTI
    ===================================================================== */
 function updateCountdown() {
   const ms = msUntilNextMovie();
@@ -1122,7 +1282,56 @@ function confetti() {
 }
 
 /* =====================================================================
-   12. START-UP: load the data, connect buttons, show the game
+   13. TV REMOTE (Fire TV and other TVs)
+   A remote only has arrow buttons and an OK button. OK already "clicks"
+   whatever has focus. Here the arrows jump to the nearest button in
+   that direction ("spatial navigation").
+   ===================================================================== */
+function focusables() {
+  // When a popup is open, only move around inside it
+  const scope = document.querySelector("dialog[open]") || document;
+  return [...scope.querySelectorAll("button, a[href], input, textarea")]
+    .filter(n => !n.disabled && n.getClientRects().length > 0); // skip hidden ones
+}
+
+function moveFocus(key) {
+  const items = focusables();
+  const current = document.activeElement;
+  if (!items.includes(current)) {
+    // Nothing focused yet: start at the search box, or else the first button
+    const start = items.find(n => n.id === "guessInput") || items[0];
+    if (start) start.focus();
+    return Boolean(start);
+  }
+  const from = current.getBoundingClientRect();
+  const fromX = from.left + from.width / 2;
+  const fromY = from.top + from.height / 2;
+  const vertical = key === "ArrowUp" || key === "ArrowDown";
+  const sign = key === "ArrowDown" || key === "ArrowRight" ? 1 : -1;
+
+  let best = null;
+  let bestScore = Infinity;
+  for (const item of items) {
+    if (item === current) continue;
+    const r = item.getBoundingClientRect();
+    const dx = r.left + r.width / 2 - fromX;
+    const dy = r.top + r.height / 2 - fromY;
+    const ahead = (vertical ? dy : dx) * sign; // how far in the pressed direction
+    if (ahead <= 1) continue;                   // it's behind us or level with us
+    const sideways = Math.abs(vertical ? dx : dy);
+    // Prefer things straight ahead; things far off to the side only win if nothing else is there
+    const score = ahead + sideways * 2 + (sideways * 2 > ahead ? 100000 : 0);
+    if (score < bestScore) { best = item; bestScore = score; }
+  }
+  if (best) {
+    best.focus();
+    best.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }
+  return Boolean(best);
+}
+
+/* =====================================================================
+   14. START-UP: load the data, connect buttons, show the game
    ===================================================================== */
 function setUpEvents() {
   const input = document.getElementById("guessInput");
@@ -1130,6 +1339,20 @@ function setUpEvents() {
   input.addEventListener("keydown", onInputKey);
   input.addEventListener("blur", () => setTimeout(closeSuggestions, 100));
   document.getElementById("guessBtn").addEventListener("click", submitGuess);
+
+  document.getElementById("soundBtn").addEventListener("click", () => {
+    soundOn = !soundOn;
+    store.set("filmdle-sound", soundOn);
+    renderSoundButton();
+    playSound("pick");
+  });
+
+  // Arrow keys anywhere outside the search box move between buttons (for TV remotes).
+  // If there's nothing in that direction, the page simply scrolls as normal.
+  document.addEventListener("keydown", e => {
+    if (!e.key.startsWith("Arrow") || e.target.matches("input, textarea")) return;
+    if (moveFocus(e.key)) e.preventDefault();
+  });
 
   document.getElementById("modeBtn").addEventListener("click", () => {
     mode === "daily" ? startPractice() : startDaily();
