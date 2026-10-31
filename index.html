@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Filmdle – Daily Bollywood Movie Game</title>
+  <meta name="description" content="Guess the Bollywood movie of the day in 6 tries. A new film every midnight, India time.">
+  <meta name="theme-color" content="#e6007e">
+  <!-- The favicon is just an emoji drawn inside an SVG, so we need no image file -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎬</text></svg>">
+  <!-- "Baloo 2" is a fun, rounded font that supports both English and Hindi (Devanagari) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;600;800&display=swap" rel="stylesheet">
+
+  <style>
+    /* ===================================================================
+       1. COLOURS
+       All colours live in these "CSS variables". Dark mode simply swaps
+       the values, so the rest of the CSS never has to care about it.
+       =================================================================== */
+    :root {
+      --bg: #fff4e6;
+      --bg-glow: #ffd9a8;
+      --card: #ffffff;
+      --text: #2a0d33;
+      --muted: #6d5a73;
+      --border: #f1d2ad;
+      --pink: #e6007e;
+      --pink-dark: #a8005c;
+      --saffron: #ff8a00;
+      --gold: #ffc72c;
+      --purple: #5b1a8c;
+      --hit: #16a34a;      /* green: match */
+      --close: #e0a800;    /* yellow: close */
+      --miss: #8b8296;     /* grey: no match */
+      --tile-text: #ffffff;
+      --shadow: 0 5px 0 rgba(91, 26, 140, 0.18);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #160a1e;
+        --bg-glow: #3b1450;
+        --card: #24112e;
+        --text: #fbeefe;
+        --muted: #bfa9c8;
+        --border: #4a2a59;
+        --pink: #ff3ea5;
+        --pink-dark: #c2177a;
+        --gold: #ffd447;
+        --purple: #c58cff;
+        --miss: #5c5168;
+        --shadow: 0 5px 0 rgba(0, 0, 0, 0.45);
+      }
+    }
+
+    /* ===================================================================
+       2. BASE LAYOUT (mobile first: everything is one narrow column)
+       =================================================================== */
+    * { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      margin: 0;
+      font-family: "Baloo 2", system-ui, -apple-system, "Segoe UI", sans-serif;
+      font-size: 17px;
+      line-height: 1.4;
+      color: var(--text);
+      /* A soft "spotlight" glow at the top of the page */
+      background: radial-gradient(ellipse at 50% -10%, var(--bg-glow), var(--bg) 65%) fixed;
+      background-color: var(--bg);
+      min-height: 100vh;
+    }
+    main, footer { max-width: 560px; margin: 0 auto; padding: 0 16px; }
+    button { font: inherit; cursor: pointer; }
+    [hidden] { display: none !important; }
+    .muted { color: var(--muted); font-size: 0.9rem; }
+
+    /* ===================================================================
+       3. HEADER – a cinema marquee with blinking light bulbs
+       =================================================================== */
+    .marquee {
+      position: relative;
+      background: linear-gradient(135deg, var(--pink), var(--saffron));
+      color: #fff;
+      padding: 22px 16px 16px;
+      margin-bottom: 16px;
+      border-radius: 0 0 28px 28px;
+      box-shadow: var(--shadow);
+      text-align: center;
+      overflow: hidden;
+    }
+    /* Two rows of "bulbs": dotted lines made with a repeating radial gradient */
+    .marquee::before, .marquee::after {
+      content: "";
+      position: absolute; left: 0; right: 0; height: 10px;
+      background: radial-gradient(circle, #fff6b0 2.5px, transparent 3.5px) 0 0 / 18px 10px repeat-x;
+      animation: bulbs 1.2s steps(2) infinite;
+    }
+    .marquee::before { top: 4px; }
+    .marquee::after  { bottom: 4px; animation-delay: -0.6s; }
+    @keyframes bulbs { to { background-position: 9px 0; } }
+
+    .top-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      max-width: 560px; margin: 0 auto;
+    }
+    .logo {
+      margin: 0;
+      font-size: clamp(2rem, 9vw, 2.8rem);
+      font-weight: 800;
+      letter-spacing: 1px;
+      line-height: 1;
+      text-shadow: 3px 3px 0 var(--purple), 5px 5px 0 rgba(0,0,0,.15);
+    }
+    .logo span { color: var(--gold); }
+    .tagline { margin: 6px 0 0; font-weight: 600; opacity: .95; }
+    .header-buttons { display: flex; gap: 6px; }
+    .icon-btn {
+      width: 42px; height: 42px;
+      border: 2px solid rgba(255,255,255,.7);
+      border-radius: 50%;
+      background: rgba(255,255,255,.18);
+      color: #fff;
+      font-size: 1.1rem; font-weight: 800;
+      display: grid; place-items: center;
+    }
+    .icon-btn:hover { background: rgba(255,255,255,.32); }
+
+    /* ===================================================================
+       4. CARDS, BUTTONS, MODE BAR
+       =================================================================== */
+    .card {
+      background: var(--card);
+      border: 2px solid var(--border);
+      border-radius: 20px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow);
+    }
+    .card h2 { margin: 0 0 10px; font-size: 1.15rem; color: var(--pink); }
+
+    .btn {
+      border: none; border-radius: 14px;
+      padding: 10px 18px;
+      font-weight: 800; font-size: 1rem;
+      transition: transform .08s;
+    }
+    .btn:active { transform: translateY(3px); }
+    .btn.primary { background: var(--pink); color: #fff; box-shadow: 0 4px 0 var(--pink-dark); }
+    .btn.gold { background: var(--gold); color: #3a2200; box-shadow: 0 4px 0 #b88a00; }
+    .btn.ghost { background: transparent; color: var(--text); border: 2px solid var(--border); }
+    :focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+
+    .mode-bar {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      margin-bottom: 12px; font-weight: 800;
+    }
+    .pill {
+      border: 2px solid var(--purple); color: var(--purple);
+      background: transparent; border-radius: 999px;
+      padding: 4px 14px; font-weight: 800;
+    }
+
+    /* ===================================================================
+       5. CLUES
+       =================================================================== */
+    .clue-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+    .clue {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 12px;
+      border-radius: 14px;
+      background: color-mix(in srgb, var(--gold) 22%, var(--card));
+      border: 2px solid color-mix(in srgb, var(--gold) 55%, var(--card));
+    }
+    .clue .num {
+      flex: none; width: 28px; height: 28px; border-radius: 50%;
+      background: var(--pink); color: #fff; font-weight: 800;
+      display: grid; place-items: center; font-size: .9rem;
+    }
+    .clue .label { font-size: .8rem; color: var(--muted); display: block; line-height: 1.1; }
+    .clue .value { font-weight: 800; font-size: 1.05rem; }
+    .clue .value.emoji { font-size: 1.7rem; letter-spacing: 2px; line-height: 1.3; }
+    .clue.locked { background: transparent; border-style: dashed; border-color: var(--border); opacity: .7; }
+    .clue.locked .num { background: var(--miss); }
+    .clue.locked .value { font-weight: 600; font-size: .9rem; color: var(--muted); }
+    .clue.fresh { animation: pop .45s ease-out; }
+    @keyframes pop { 0% { transform: scale(.85); opacity: 0; } 70% { transform: scale(1.04); } 100% { transform: scale(1); opacity: 1; } }
+
+    /* ===================================================================
+       6. GUESS BOX + AUTOCOMPLETE
+       =================================================================== */
+    .guess-row-input { display: flex; gap: 8px; }
+    .combo { position: relative; flex: 1; }
+    #guessInput {
+      width: 100%;
+      font: inherit; font-size: 1rem;
+      padding: 10px 14px;
+      border-radius: 14px;
+      border: 2px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+    }
+    #guessInput:focus { outline: none; border-color: var(--pink); }
+    .suggestions {
+      position: absolute; left: 0; right: 0; top: calc(100% + 4px);
+      z-index: 10;
+      list-style: none; margin: 0; padding: 4px;
+      background: var(--card);
+      border: 2px solid var(--pink);
+      border-radius: 14px;
+      box-shadow: 0 10px 24px rgba(0,0,0,.2);
+      max-height: 260px; overflow-y: auto;
+    }
+    .suggestions li { padding: 8px 10px; border-radius: 10px; cursor: pointer; }
+    .suggestions li .alt { color: var(--muted); font-size: .85rem; }
+    .suggestions li.active, .suggestions li:hover { background: var(--pink); color: #fff; }
+    .suggestions li.active .alt, .suggestions li:hover .alt { color: #ffe0f0; }
+    #guessCount { margin: 10px 0 0; }
+
+    /* ===================================================================
+       7. PREVIOUS GUESSES (comparison tiles)
+       =================================================================== */
+    .guess-item { margin-bottom: 12px; }
+    .guess-title { font-weight: 800; margin-bottom: 6px; }
+    .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+    .tile {
+      border-radius: 12px; padding: 6px 4px;
+      text-align: center; color: var(--tile-text);
+      font-size: .78rem; line-height: 1.2;
+      min-height: 64px;
+      display: flex; flex-direction: column; justify-content: center;
+      overflow-wrap: anywhere;
+    }
+    .tile .tile-label { font-size: .68rem; opacity: .85; text-transform: uppercase; letter-spacing: .5px; }
+    .tile .tile-value { font-weight: 800; }
+    .tile.hit { background: var(--hit); }
+    .tile.close { background: var(--close); color: #2b1d00; }
+    .tile.miss { background: var(--miss); }
+    @media (max-width: 340px) { .tiles { grid-template-columns: repeat(2, 1fr); } }
+
+    /* ===================================================================
+       8. RESULT CARD
+       =================================================================== */
+    .result { text-align: center; animation: pop .5s ease-out; }
+    .result h2 { font-size: 1.5rem; color: var(--pink); }
+    .answer-title { font-size: 1.6rem; font-weight: 800; margin: 2px 0; color: var(--purple); }
+    .facts { text-align: left; margin: 12px 0; display: grid; gap: 4px; }
+    .facts b { color: var(--pink); }
+    .fun-fact {
+      text-align: left; margin: 12px 0;
+      padding: 10px 12px; border-radius: 14px;
+      background: color-mix(in srgb, var(--purple) 12%, var(--card));
+    }
+    .result-buttons { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 12px; }
+    .result-buttons a { text-decoration: none; display: inline-block; }
+    #shareBox { width: 100%; margin-top: 10px; font: inherit; border-radius: 10px; padding: 8px; background: var(--bg); color: var(--text); border: 2px solid var(--border); }
+    .countdown { margin-top: 14px; font-weight: 600; }
+    .countdown strong { font-size: 1.4rem; display: block; color: var(--purple); font-variant-numeric: tabular-nums; }
+
+    /* ===================================================================
+       9. POPUPS (<dialog>), TOAST, CONFETTI, FOOTER
+       =================================================================== */
+    dialog {
+      border: 3px solid var(--pink);
+      border-radius: 22px;
+      background: var(--card); color: var(--text);
+      padding: 18px;
+      width: min(92vw, 460px);
+      max-height: 88vh;
+    }
+    dialog::backdrop { background: rgba(20, 0, 30, .6); }
+    dialog h2 { margin-top: 0; color: var(--pink); }
+    .dialog-close { float: right; border: none; background: none; font-size: 1.4rem; color: var(--muted); }
+    .legend { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 10px 0; }
+    .legend .tile { min-height: 44px; }
+
+    .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; text-align: center; margin-bottom: 16px; }
+    .stat-grid strong { display: block; font-size: 1.6rem; line-height: 1; color: var(--purple); }
+    .stat-grid span { font-size: .75rem; color: var(--muted); }
+    .dist-row { display: flex; align-items: center; gap: 6px; margin: 4px 0; }
+    .dist-row .n { width: 14px; font-weight: 800; }
+    .dist-row .bar {
+      background: var(--miss); color: #fff;
+      border-radius: 6px; padding: 0 8px;
+      text-align: right; font-weight: 800; min-width: 28px;
+    }
+    .dist-row .bar.today { background: var(--hit); }
+
+    #toast {
+      position: fixed; left: 50%; top: 18px; transform: translateX(-50%);
+      background: var(--text); color: var(--bg);
+      padding: 10px 18px; border-radius: 999px; font-weight: 800;
+      z-index: 100; opacity: 0; pointer-events: none; transition: opacity .25s;
+      max-width: 90vw; text-align: center;
+    }
+    #toast.show { opacity: 1; }
+
+    .confetti { position: fixed; top: -40px; font-size: 1.6rem; pointer-events: none; z-index: 90; animation: fall linear forwards; }
+    @keyframes fall { to { transform: translateY(110vh) rotate(540deg); } }
+
+    footer { text-align: center; padding-bottom: 32px; }
+
+    /* People who ask their device for less motion get no blinking or falling things */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ===================== HEADER ===================== -->
+  <header class="marquee">
+    <div class="top-bar">
+      <button id="helpBtn" class="icon-btn" aria-label="How to play">?</button>
+      <h1 class="logo">FILM<span>DLE</span></h1>
+      <div class="header-buttons">
+        <button id="langBtn" class="icon-btn" aria-label="Switch language">हिं</button>
+        <button id="statsBtn" class="icon-btn" aria-label="Statistics">📊</button>
+      </div>
+    </div>
+    <p class="tagline" data-i18n="tagline"></p>
+  </header>
+
+  <main>
+    <p id="loadError" class="card" hidden></p>
+
+    <!-- Which mode we're in (Daily #N or Practice) + the switch button -->
+    <div class="mode-bar">
+      <span id="modeLabel"></span>
+      <button id="modeBtn" class="pill"></button>
+    </div>
+
+    <!-- The six clues. They are filled in by JavaScript. -->
+    <section class="card" aria-live="polite">
+      <h2 data-i18n="clues"></h2>
+      <ol id="clueList" class="clue-list"></ol>
+    </section>
+
+    <!-- Shown when the game is over -->
+    <section id="result" class="card result" hidden></section>
+
+    <!-- The search box with autocomplete -->
+    <section id="guessArea" class="card">
+      <div class="guess-row-input">
+        <div class="combo">
+          <input id="guessInput" type="text" autocomplete="off" spellcheck="false"
+                 role="combobox" aria-autocomplete="list" aria-expanded="false"
+                 aria-controls="suggestions">
+          <ul id="suggestions" class="suggestions" role="listbox" hidden></ul>
+        </div>
+        <button id="guessBtn" class="btn primary" data-i18n="guess"></button>
+      </div>
+      <p id="guessCount" class="muted"></p>
+    </section>
+
+    <!-- Earlier guesses with their comparison tiles -->
+    <section id="history"></section>
+  </main>
+
+  <footer class="muted" data-i18n="footer"></footer>
+
+  <!-- Little pop-up message at the top of the screen -->
+  <div id="toast" role="status" aria-live="polite"></div>
+
+  <!-- ===================== POPUPS ===================== -->
+  <dialog id="helpModal">
+    <button class="dialog-close" data-close aria-label="Close">✕</button>
+    <h2 data-i18n="howToPlay"></h2>
+    <div id="helpBody"></div>
+    <button class="btn primary" data-close data-i18n="letsPlay"></button>
+  </dialog>
+
+  <dialog id="statsModal">
+    <button class="dialog-close" data-close aria-label="Close">✕</button>
+    <h2 data-i18n="statistics"></h2>
+    <div id="statsBody"></div>
+  </dialog>
+
+<script>
+"use strict";
+
+/* =====================================================================
+   1. SETTINGS
+   ===================================================================== */
+const MAX_GUESSES = 6;
+const DAY_MS = 24 * 60 * 60 * 1000;
+// India is always UTC+5:30 (no daylight saving), so a fixed offset is enough.
+const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+// Day number of "Filmdle #1": 31 October 2026. (JavaScript months start at 0, so 9 = October.)
+const LAUNCH_DAY = Date.UTC(2026, 9, 31) / DAY_MS;
+
+/* =====================================================================
+   2. TRANSLATIONS
+   Every piece of interface text, in English and Hindi.
+   {n} style placeholders are filled in by the t() function below.
+   ===================================================================== */
+const TEXT = {
+  en: {
+    tagline: "Guess the Bollywood movie of the day",
+    clues: "Clues",
+    clueNames: ["Emoji plot", "Genre & decade", "Release year", "Director", "Lead actors' initials", "Famous song"],
+    locked: "Unlocks after a wrong guess",
+    placeholder: "Type a movie name…",
+    guess: "Guess",
+    guessCount: "Guess {n} of {max}",
+    daily: "Daily #{n}",
+    practiceLabel: "🎲 Practice (not counted)",
+    toPractice: "🎲 Practice",
+    toDaily: "📅 Daily",
+    year: "Year", director: "Director", actor: "Lead", genre: "Genre",
+    later: "The movie is later", earlier: "The movie is earlier",
+    noShared: "None shared",
+    decade: "{d}s",
+    win: "You got it! 🎉",
+    winIn: "Solved in {n}/{max}",
+    lose: "So close! 🎭",
+    answerWas: "The movie was",
+    cast: "Cast", song: "Song", funFact: "Fun fact",
+    share: "📋 Copy result",
+    whatsapp: "💬 WhatsApp",
+    copied: "Copied! Paste it in WhatsApp 🎬",
+    copyManual: "Select the text below and copy it",
+    nextMovie: "Next movie in",
+    newPractice: "🎲 New practice movie",
+    notInList: "Pick a movie from the list",
+    already: "You already guessed that one",
+    loadError: "Couldn't load movies.json. If you opened index.html directly from your computer, start a small local server instead (see README).",
+    howToPlay: "How to play",
+    letsPlay: "Let's play!",
+    statistics: "Statistics",
+    played: "Played", winPct: "Win %", streak: "Current streak", best: "Best streak",
+    distribution: "Guess distribution",
+    statsNote: "Practice games are not counted.",
+    footer: "A fan-made game. All clues and facts are written by us – no posters, stills, dialogue or lyrics.",
+    help: `
+      <p>Guess today's Bollywood movie in <b>6 tries</b>.</p>
+      <ul>
+        <li>You start with <b>one clue</b>. Every wrong guess unlocks another.</li>
+        <li>Type a title and pick it from the list. Press <b>Enter</b> to guess (arrow keys move through the list).</li>
+        <li>Each wrong guess shows how close you were:</li>
+      </ul>
+      <div class="legend">
+        <div class="tile hit"><span class="tile-value">✅</span>match</div>
+        <div class="tile close"><span class="tile-value">🟨</span>close</div>
+        <div class="tile miss"><span class="tile-value">❌</span>no match</div>
+      </div>
+      <p><b>Year:</b> ⬆️ the movie came out later, ⬇️ earlier, 🟨 within 3 years.<br>
+         <b>Genre:</b> 🟨 means some genres overlap.</p>
+      <p>A new movie arrives every midnight (India time). Want more? Try <b>Practice</b> mode.</p>`
+  },
+  hi: {
+    tagline: "आज की बॉलीवुड फ़िल्म पहचानिए",
+    clues: "सुराग",
+    clueNames: ["इमोजी कहानी", "शैली और दशक", "रिलीज़ वर्ष", "निर्देशक", "मुख्य कलाकारों के आद्याक्षर", "मशहूर गाना"],
+    locked: "ग़लत अंदाज़े के बाद खुलेगा",
+    placeholder: "फ़िल्म का नाम लिखें…",
+    guess: "अंदाज़ा",
+    guessCount: "अंदाज़ा {n} / {max}",
+    daily: "आज की फ़िल्म #{n}",
+    practiceLabel: "🎲 अभ्यास (गिना नहीं जाएगा)",
+    toPractice: "🎲 अभ्यास",
+    toDaily: "📅 आज की",
+    year: "वर्ष", director: "निर्देशक", actor: "कलाकार", genre: "शैली",
+    later: "फ़िल्म बाद की है", earlier: "फ़िल्म पहले की है",
+    noShared: "कोई साझा नहीं",
+    decade: "{d} का दशक",
+    win: "सही जवाब! 🎉",
+    winIn: "{n}/{max} में हल किया",
+    lose: "बस थोड़ा सा चूक गए! 🎭",
+    answerWas: "फ़िल्म थी",
+    cast: "कलाकार", song: "गाना", funFact: "मज़ेदार तथ्य",
+    share: "📋 नतीजा कॉपी करें",
+    whatsapp: "💬 WhatsApp",
+    copied: "कॉपी हो गया! WhatsApp में पेस्ट करें 🎬",
+    copyManual: "नीचे का टेक्स्ट चुनकर कॉपी करें",
+    nextMovie: "अगली फ़िल्म",
+    newPractice: "🎲 नई अभ्यास फ़िल्म",
+    notInList: "सूची में से कोई फ़िल्म चुनें",
+    already: "यह फ़िल्म आप पहले ही चुन चुके हैं",
+    loadError: "movies.json लोड नहीं हो सका। अगर आपने index.html सीधे कंप्यूटर से खोली है, तो एक लोकल सर्वर चलाएँ (README देखें)।",
+    howToPlay: "कैसे खेलें",
+    letsPlay: "चलो खेलें!",
+    statistics: "आँकड़े",
+    played: "खेले", winPct: "जीत %", streak: "मौजूदा सिलसिला", best: "सबसे लंबा सिलसिला",
+    distribution: "अंदाज़ों का वितरण",
+    statsNote: "अभ्यास वाले खेल गिने नहीं जाते।",
+    footer: "प्रशंसकों का बनाया खेल। सारे सुराग और तथ्य हमने ख़ुद लिखे हैं – कोई पोस्टर, तस्वीर, डायलॉग या गीत के बोल नहीं।",
+    help: `
+      <p>आज की बॉलीवुड फ़िल्म <b>6 कोशिशों</b> में पहचानिए।</p>
+      <ul>
+        <li>शुरुआत में <b>एक सुराग</b> मिलता है। हर ग़लत अंदाज़े पर एक नया सुराग खुलता है।</li>
+        <li>फ़िल्म का नाम लिखें और सूची से चुनें। अंदाज़ा लगाने के लिए <b>Enter</b> दबाएँ (तीर वाली कुंजियों से सूची में चलें)।</li>
+        <li>हर ग़लत अंदाज़ा बताता है कि आप कितने क़रीब थे:</li>
+      </ul>
+      <div class="legend">
+        <div class="tile hit"><span class="tile-value">✅</span>मेल</div>
+        <div class="tile close"><span class="tile-value">🟨</span>क़रीब</div>
+        <div class="tile miss"><span class="tile-value">❌</span>मेल नहीं</div>
+      </div>
+      <p><b>वर्ष:</b> ⬆️ फ़िल्म बाद में आई, ⬇️ पहले आई, 🟨 तीन साल के अंदर।<br>
+         <b>शैली:</b> 🟨 का मतलब कुछ शैलियाँ मिलती हैं।</p>
+      <p>हर रात 12 बजे (भारतीय समय) नई फ़िल्म आती है। और खेलना है? <b>अभ्यास</b> मोड आज़माएँ।</p>`
+  }
+};
+
+// Genre names in Hindi (English names come straight from movies.json)
+const GENRE_HI = {
+  Action: "एक्शन", Adventure: "रोमांच", Biography: "जीवनी", Comedy: "कॉमेडी",
+  Crime: "क्राइम", Drama: "ड्रामा", Family: "पारिवारिक", Horror: "हॉरर",
+  Musical: "म्यूज़िकल", Mystery: "रहस्य", Romance: "रोमांस", Satire: "व्यंग्य",
+  "Sci-Fi": "साइंस-फ़िक्शन", Sports: "खेल", Spy: "जासूसी", Thriller: "थ्रिलर", War: "युद्ध"
+};
+
+/* =====================================================================
+   3. SMALL HELPERS
+   ===================================================================== */
+
+// Safe localStorage: private browsing or blocked storage can throw errors,
+// so every read/write is wrapped in try/catch and falls back quietly.
+const store = {
+  get(key, fallback) {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw === null ? fallback : JSON.parse(raw);
+    } catch (e) { return fallback; }
+  },
+  set(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* ignore */ }
+  }
+};
+
+// Translate a key into the current language and fill in {placeholders}
+function t(key, vars = {}) {
+  const str = TEXT[lang][key] ?? TEXT.en[key] ?? key;
+  return typeof str === "string" ? str.replace(/\{(\w+)\}/g, (_, k) => vars[k]) : str;
+}
+const genreName = g => (lang === "hi" ? GENRE_HI[g] || g : g);
+
+// Create an element with a class and (safe) text in one line
+function el(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
+
+// Make text easy to compare: lowercase, no accents, no punctuation.
+// "Chak De! India" -> "chak de india"
+function normalize(s) {
+  return s.toLowerCase()
+    .normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+// "Shah Rukh Khan" -> "S.R.K."   "R. Madhavan" -> "R.M."   "Kajol" -> "K."
+function initials(name) {
+  return name.replace(/\./g, " ").split(/\s+/).filter(Boolean)
+    .map(word => word[0].toUpperCase() + ".").join("");
+}
+
+let toastTimer;
+function toast(message) {
+  const box = document.getElementById("toast");
+  box.textContent = message;
+  box.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => box.classList.remove("show"), 2200);
+}
+
+/* =====================================================================
+   4. PICKING THE MOVIE OF THE DAY
+   ===================================================================== */
+
+// Today's day number in India time (counts whole days since 1 Jan 1970)
+function istDayNumber() {
+  return Math.floor((Date.now() + IST_OFFSET_MS) / DAY_MS);
+}
+// 0 on launch day, 1 the next day, and so on
+function todayIndex() {
+  return Math.max(0, istDayNumber() - LAUNCH_DAY);
+}
+// Milliseconds until the next midnight in India
+function msUntilNextMovie() {
+  return DAY_MS - ((Date.now() + IST_OFFSET_MS) % DAY_MS);
+}
+
+// A tiny "seeded" random number generator (mulberry32).
+// The same seed always gives the same sequence of numbers, which is how
+// every player gets the same movie without any server.
+function seededRandom(seed) {
+  return function () {
+    seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+    let x = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    x = (x + Math.imul(x ^ (x >>> 7), 61 | x)) ^ x;
+    return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// The order in which movies appear during one "cycle" through the list.
+// Fisher–Yates shuffle, driven by the seeded random numbers.
+function cycleOrder(cycle) {
+  const ids = movies.map(m => m.id).sort(); // sort first so file order doesn't matter
+  const random = seededRandom(cycle * 7919 + 1);
+  for (let i = ids.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [ids[i], ids[j]] = [ids[j], ids[i]];
+  }
+  return ids;
+}
+
+// Day 0..59 walks through cycle 0, day 60..119 through cycle 1 (a new shuffle), etc.
+// So no movie repeats until every movie has been used once.
+function dailyMovie(dayIndex) {
+  const n = movies.length;
+  const cycle = Math.floor(dayIndex / n);
+  const order = cycleOrder(cycle);
+  // Avoid the same film two days in a row where one cycle ends and the next begins
+  if (cycle > 0 && order[0] === cycleOrder(cycle - 1)[n - 1]) {
+    [order[0], order[1]] = [order[1], order[0]];
+  }
+  return movieById[order[dayIndex % n]];
+}
+
+/* =====================================================================
+   5. GAME STATE
+   ===================================================================== */
+let movies = [];          // everything from movies.json
+let movieById = {};       // quick lookup: id -> movie
+let lang = store.get("filmdle-lang", "en") === "hi" ? "hi" : "en";
+let mode = "daily";       // "daily" or "practice"
+let game = null;          // { answer, guesses: [movie, ...], status: "playing" | "won" | "lost" }
+let cluesShownBefore = 0; // used to animate a clue the moment it unlocks
+
+// Matches shown in the autocomplete list, and which one is highlighted
+let matches = [];
+let activeIndex = -1;
+let picked = null;        // the movie chosen from the list
+
+function startDaily() {
+  mode = "daily";
+  const day = todayIndex();
+  const answer = dailyMovie(day);
+  // Restore today's progress if the player already started (e.g. reloaded the page)
+  const saved = store.get("filmdle-daily", null);
+  let guesses = [];
+  let status = "playing";
+  if (saved && saved.day === day) {
+    guesses = saved.guesses.map(id => movieById[id]).filter(Boolean);
+    status = saved.status;
+  }
+  game = { answer, guesses, status };
+  cluesShownBefore = cluesShown();
+  renderAll();
+}
+
+function startPractice() {
+  mode = "practice";
+  // Any random movie, but not the same one as last time
+  let answer;
+  do {
+    answer = movies[Math.floor(Math.random() * movies.length)];
+  } while (movies.length > 1 && game && answer === game.answer);
+  game = { answer, guesses: [], status: "playing" };
+  cluesShownBefore = 1;
+  renderAll();
+  document.getElementById("guessInput").focus();
+}
+
+function saveDaily() {
+  store.set("filmdle-daily", {
+    day: todayIndex(),
+    guesses: game.guesses.map(m => m.id),
+    status: game.status
+  });
+}
+
+// One clue at the start, one more per wrong guess, all of them once the game is over
+function cluesShown() {
+  if (game.status !== "playing") return 6;
+  return Math.min(6, 1 + game.guesses.length);
+}
+
+/* =====================================================================
+   6. MAKING A GUESS
+   ===================================================================== */
+function submitGuess() {
+  if (!game || game.status !== "playing") return;
+  const input = document.getElementById("guessInput");
+  const movie = findTypedMovie(input.value);
+
+  if (!movie) { toast(t("notInList")); return; }
+  if (game.guesses.includes(movie)) { toast(t("already")); return; }
+
+  game.guesses.push(movie);
+  if (movie === game.answer) game.status = "won";
+  else if (game.guesses.length >= MAX_GUESSES) game.status = "lost";
+
+  if (mode === "daily") {
+    saveDaily();
+    if (game.status !== "playing") recordStats(game.status === "won", game.guesses.length);
+  }
+
+  input.value = "";
+  picked = null;
+  closeSuggestions();
+  renderAll();
+
+  if (game.status === "won") confetti();
+  if (game.status !== "playing") {
+    document.getElementById("result").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+}
+
+// Turn whatever is in the search box into a movie (or null).
+// Works if the player picked from the list OR typed an exact title / alternative title.
+function findTypedMovie(text) {
+  if (picked && text === picked.title) return picked;
+  const q = normalize(text);
+  if (!q) return null;
+  return movies.find(m => [m.title, ...m.altTitles].some(name => normalize(name) === q)) || null;
+}
+
+// Compare a wrong guess with the answer and build the four tiles
+function compare(guess, answer) {
+  // Year: arrows show the direction, 🟨 if within 3 years
+  const diff = answer.year - guess.year;
+  const yearClose = Math.abs(diff) <= 3;
+  const year = diff === 0
+    ? { state: "hit", text: `${guess.year} ✅` }
+    : {
+        state: yearClose ? "close" : "miss",
+        text: `${guess.year} ${diff > 0 ? "⬆️" : "⬇️"}${yearClose ? "🟨" : ""}`,
+        tip: diff > 0 ? t("later") : t("earlier")
+      };
+
+  // Director: same or not
+  const sameDirector = guess.director === answer.director;
+  const director = { state: sameDirector ? "hit" : "miss", text: `${guess.director} ${sameDirector ? "✅" : "❌"}` };
+
+  // Lead actor: do they share anyone?
+  const shared = guess.leadActors.filter(a => answer.leadActors.includes(a));
+  const actor = shared.length
+    ? { state: "hit", text: `${shared[0]} ✅` }
+    : { state: "miss", text: `${t("noShared")} ❌` };
+
+  // Genre: identical set = ✅, some overlap = 🟨, nothing in common = ❌
+  const common = guess.genres.filter(g => answer.genres.includes(g));
+  const sameGenres = common.length === guess.genres.length && common.length === answer.genres.length;
+  const genreText = guess.genres.map(genreName).join(", ");
+  const genre = sameGenres ? { state: "hit", text: `${genreText} ✅` }
+    : common.length ? { state: "close", text: `${genreText} 🟨` }
+    : { state: "miss", text: `${genreText} ❌` };
+
+  return { year, director, actor, genre };
+}
+
+/* =====================================================================
+   7. DRAWING THE SCREEN
+   Each render function rebuilds its part of the page from `game`.
+   Simple and hard to get out of sync.
+   ===================================================================== */
+function renderAll() {
+  renderStaticText();
+  renderModeBar();
+  renderClues();
+  renderGuessArea();
+  renderHistory();
+  renderResult();
+}
+
+// Text that never changes except when the language changes
+function renderStaticText() {
+  document.documentElement.lang = lang;
+  document.querySelectorAll("[data-i18n]").forEach(node => {
+    node.textContent = t(node.dataset.i18n);
+  });
+  document.getElementById("guessInput").placeholder = t("placeholder");
+  document.getElementById("helpBody").innerHTML = t("help"); // our own fixed text, safe to use as HTML
+  document.getElementById("langBtn").textContent = lang === "en" ? "हिं" : "EN";
+}
+
+function renderModeBar() {
+  document.getElementById("modeLabel").textContent =
+    mode === "daily" ? `🎬 ${t("daily", { n: todayIndex() + 1 })}` : t("practiceLabel");
+  document.getElementById("modeBtn").textContent = mode === "daily" ? t("toPractice") : t("toDaily");
+}
+
+function clueValues(m) {
+  const decade = t("decade", { d: Math.floor(m.year / 10) * 10 });
+  return [
+    m.emoji,
+    `${m.genres.map(genreName).join(" / ")} · ${decade}`,
+    String(m.year),
+    m.director,
+    m.leadActors.slice(0, 2).map(initials).join(" & "),
+    `🎵 ${m.song}`
+  ];
+}
+
+function renderClues() {
+  const list = document.getElementById("clueList");
+  list.innerHTML = "";
+  const shown = cluesShown();
+  const values = clueValues(game.answer);
+  const names = t("clueNames");
+
+  values.forEach((value, i) => {
+    const unlocked = i < shown;
+    const li = el("li", "clue" + (unlocked ? "" : " locked") + (unlocked && i >= cluesShownBefore ? " fresh" : ""));
+    li.append(el("span", "num", unlocked ? String(i + 1) : "🔒"));
+    const body = el("div");
+    body.append(el("span", "label", names[i]));
+    body.append(el("span", "value" + (i === 0 ? " emoji" : ""), unlocked ? value : t("locked")));
+    li.append(body);
+    list.append(li);
+  });
+  cluesShownBefore = shown;
+}
+
+function renderGuessArea() {
+  const playing = game.status === "playing";
+  document.getElementById("guessArea").hidden = !playing;
+  document.getElementById("guessCount").textContent =
+    t("guessCount", { n: game.guesses.length + 1, max: MAX_GUESSES });
+}
+
+function renderHistory() {
+  const box = document.getElementById("history");
+  box.innerHTML = "";
+  // Newest guess first
+  [...game.guesses].reverse().forEach(guess => {
+    const c = compare(guess, game.answer);
+    const item = el("div", "card guess-item");
+    item.append(el("div", "guess-title", (guess === game.answer ? "🎉 " : "❌ ") + guess.title));
+    const tiles = el("div", "tiles");
+    [["year", c.year], ["director", c.director], ["actor", c.actor], ["genre", c.genre]].forEach(([label, info]) => {
+      const tile = el("div", "tile " + info.state);
+      if (info.tip) tile.title = info.tip;
+      tile.setAttribute("aria-label", `${t(label)}: ${info.text}${info.tip ? " – " + info.tip : ""}`);
+      tile.append(el("span", "tile-label", t(label)), el("span", "tile-value", info.text));
+      tiles.append(tile);
+    });
+    item.append(tiles);
+    box.append(item);
+  });
+}
+
+function renderResult() {
+  const box = document.getElementById("result");
+  if (game.status === "playing") { box.hidden = true; return; }
+  box.hidden = false;
+  box.innerHTML = "";
+  const m = game.answer;
+  const won = game.status === "won";
+
+  box.append(el("h2", "", won ? t("win") : t("lose")));
+  if (won) box.append(el("p", "muted", t("winIn", { n: game.guesses.length, max: MAX_GUESSES })));
+  else box.append(el("p", "muted", t("answerWas")));
+  box.append(el("p", "answer-title", m.title));
+
+  const facts = el("div", "facts");
+  [[t("year"), m.year], [t("director"), m.director], [t("cast"), m.leadActors.join(", ")], [t("song"), "🎵 " + m.song]]
+    .forEach(([label, value]) => {
+      const row = el("div");
+      row.append(el("b", "", label + ": "), document.createTextNode(value));
+      facts.append(row);
+    });
+  box.append(facts);
+
+  const fact = el("div", "fun-fact");
+  fact.append(el("b", "", "💡 " + t("funFact") + ": "), document.createTextNode(m.funFact));
+  box.append(fact);
+
+  const buttons = el("div", "result-buttons");
+  if (mode === "daily") {
+    const shareBtn = el("button", "btn primary", t("share"));
+    shareBtn.addEventListener("click", shareResult);
+    // WhatsApp's official "click to chat" link opens the app with the text ready
+    const wa = el("a", "btn gold", t("whatsapp"));
+    wa.href = "https://wa.me/?text=" + encodeURIComponent(shareText());
+    wa.target = "_blank";
+    wa.rel = "noopener";
+    buttons.append(shareBtn, wa);
+  }
+  const practiceBtn = el("button", "btn ghost", t("newPractice"));
+  practiceBtn.addEventListener("click", startPractice);
+  buttons.append(practiceBtn);
+  box.append(buttons);
+
+  // Hidden textarea used only if automatic copying is not allowed
+  const shareBox = el("textarea");
+  shareBox.id = "shareBox";
+  shareBox.rows = 4;
+  shareBox.readOnly = true;
+  shareBox.hidden = true;
+  box.append(shareBox);
+
+  if (mode === "daily") {
+    const cd = el("div", "countdown");
+    cd.append(document.createTextNode(t("nextMovie")), el("strong", "", ""));
+    cd.lastChild.id = "countdown";
+    box.append(cd);
+    updateCountdown();
+  }
+}
+
+/* =====================================================================
+   8. AUTOCOMPLETE
+   ===================================================================== */
+function findMatches(text) {
+  const q = normalize(text);
+  if (!q) return [];
+  const results = [];
+  for (const m of movies) {
+    if (game.guesses.includes(m)) continue; // don't suggest something already tried
+    let best = null; // lower score = better match
+    let matchedAlt = null;
+    [m.title, ...m.altTitles].forEach((name, i) => {
+      const n = normalize(name);
+      const score = n.startsWith(q) ? 0 : (" " + n).includes(" " + q) ? 1 : n.includes(q) ? 2 : null;
+      if (score !== null && (best === null || score < best)) {
+        best = score;
+        matchedAlt = i === 0 ? null : name;
+      }
+    });
+    if (best !== null) results.push({ movie: m, score: best, alt: matchedAlt });
+  }
+  results.sort((a, b) => a.score - b.score || a.movie.title.localeCompare(b.movie.title));
+  return results.slice(0, 8);
+}
+
+function showSuggestions() {
+  const input = document.getElementById("guessInput");
+  const list = document.getElementById("suggestions");
+  matches = findMatches(input.value);
+  activeIndex = matches.length ? 0 : -1; // highlight the top one so Enter picks it
+  list.innerHTML = "";
+  matches.forEach((match, i) => {
+    const li = el("li", "", match.movie.title);
+    li.id = "opt-" + i;
+    li.setAttribute("role", "option");
+    if (match.alt) li.append(el("span", "alt", ` (${match.alt})`));
+    // mousedown (not click) so the input keeps focus
+    li.addEventListener("mousedown", e => { e.preventDefault(); pickMatch(i); });
+    list.append(li);
+  });
+  list.hidden = matches.length === 0;
+  input.setAttribute("aria-expanded", String(!list.hidden));
+  highlight();
+}
+
+function highlight() {
+  const input = document.getElementById("guessInput");
+  document.querySelectorAll("#suggestions li").forEach((li, i) => {
+    const on = i === activeIndex;
+    li.classList.toggle("active", on);
+    li.setAttribute("aria-selected", String(on));
+    if (on) li.scrollIntoView({ block: "nearest" });
+  });
+  if (activeIndex >= 0) input.setAttribute("aria-activedescendant", "opt-" + activeIndex);
+  else input.removeAttribute("aria-activedescendant");
+}
+
+function pickMatch(i) {
+  picked = matches[i].movie;
+  document.getElementById("guessInput").value = picked.title;
+  closeSuggestions();
+}
+
+function closeSuggestions() {
+  const list = document.getElementById("suggestions");
+  list.hidden = true;
+  matches = [];
+  activeIndex = -1;
+  document.getElementById("guessInput").setAttribute("aria-expanded", "false");
+}
+
+function onInputKey(e) {
+  const open = !document.getElementById("suggestions").hidden;
+  if (e.key === "ArrowDown") {
+    e.preventDefault();
+    if (!open) return showSuggestions();
+    activeIndex = (activeIndex + 1) % matches.length;
+    highlight();
+  } else if (e.key === "ArrowUp") {
+    e.preventDefault();
+    if (!open) return;
+    activeIndex = (activeIndex - 1 + matches.length) % matches.length;
+    highlight();
+  } else if (e.key === "Enter") {
+    e.preventDefault();
+    // First Enter picks the highlighted suggestion, the next Enter makes the guess
+    if (open && activeIndex >= 0) pickMatch(activeIndex);
+    else submitGuess();
+  } else if (e.key === "Escape") {
+    closeSuggestions();
+  }
+}
+
+/* =====================================================================
+   9. SHARING
+   ===================================================================== */
+function shareText() {
+  const score = game.status === "won" ? game.guesses.length : "X";
+  const squares = game.guesses.map(g => (g === game.answer ? "🟩" : "🟥")).join("");
+  const link = location.href.split(/[?#]/)[0];
+  return `Filmdle #${todayIndex() + 1} 🎬 ${score}/${MAX_GUESSES}\n${squares}\n${link}`;
+}
+
+async function shareResult() {
+  const text = shareText();
+  // Modern way: the Clipboard API (needs https, which GitHub Pages has)
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      toast(t("copied"));
+      return;
+    }
+  } catch (e) { /* fall through to the old way */ }
+
+  // Fallback: show the text in a box, select it, and try the old copy command
+  const box = document.getElementById("shareBox");
+  box.hidden = false;
+  box.value = text;
+  box.focus();
+  box.select();
+  let ok = false;
+  try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+  toast(ok ? t("copied") : t("copyManual"));
+}
+
+/* =====================================================================
+   10. STATS (daily games only)
+   ===================================================================== */
+const EMPTY_STATS = { played: 0, wins: 0, streak: 0, best: 0, dist: [0, 0, 0, 0, 0, 0], lastWinDay: null };
+
+function loadStats() {
+  return { ...EMPTY_STATS, ...store.get("filmdle-stats", {}) };
+}
+
+function recordStats(won, guessCount) {
+  const s = loadStats();
+  const day = todayIndex();
+  s.played += 1;
+  if (won) {
+    s.wins += 1;
+    s.dist[guessCount - 1] += 1;
+    // The streak continues only if yesterday was also a win
+    s.streak = s.lastWinDay === day - 1 ? s.streak + 1 : 1;
+    s.lastWinDay = day;
+    s.best = Math.max(s.best, s.streak);
+  } else {
+    s.streak = 0;
+  }
+  store.set("filmdle-stats", s);
+}
+
+function renderStats() {
+  const s = loadStats();
+  const day = todayIndex();
+  // If the last win was before yesterday, the streak is already broken
+  const streak = s.lastWinDay !== null && s.lastWinDay >= day - 1 ? s.streak : 0;
+  const winPct = s.played ? Math.round((s.wins / s.played) * 100) : 0;
+
+  const body = document.getElementById("statsBody");
+  body.innerHTML = "";
+  const grid = el("div", "stat-grid");
+  [[s.played, t("played")], [winPct, t("winPct")], [streak, t("streak")], [s.best, t("best")]].forEach(([n, label]) => {
+    const cell = el("div");
+    cell.append(el("strong", "", String(n)), el("span", "", label));
+    grid.append(cell);
+  });
+  body.append(grid);
+
+  body.append(el("h3", "", t("distribution")));
+  const max = Math.max(1, ...s.dist);
+  // Highlight today's bar if today's daily game was won
+  const todayWin = mode === "daily" && game && game.status === "won" ? game.guesses.length : null;
+  s.dist.forEach((count, i) => {
+    const row = el("div", "dist-row");
+    const bar = el("div", "bar" + (todayWin === i + 1 ? " today" : ""), String(count));
+    bar.style.width = Math.max(8, (count / max) * 100) + "%";
+    row.append(el("span", "n", String(i + 1)), bar);
+    body.append(row);
+  });
+  body.append(el("p", "muted", t("statsNote")));
+}
+
+/* =====================================================================
+   11. COUNTDOWN, CONFETTI
+   ===================================================================== */
+function updateCountdown() {
+  const ms = msUntilNextMovie();
+  const box = document.getElementById("countdown");
+  if (box) {
+    const h = Math.floor(ms / 3600000);
+    const m = Math.floor((ms % 3600000) / 60000);
+    const s = Math.floor((ms % 60000) / 1000);
+    box.textContent = [h, m, s].map(x => String(x).padStart(2, "0")).join(":");
+  }
+}
+
+// When midnight passes in India while the page is open, load the new movie
+let currentDay = null;
+function tick() {
+  updateCountdown();
+  if (currentDay !== null && todayIndex() !== currentDay && mode === "daily") startDaily();
+  currentDay = todayIndex();
+}
+
+function confetti() {
+  const pieces = ["🎬", "✨", "🌟", "🎉", "💃", "🍿"];
+  for (let i = 0; i < 24; i++) {
+    const p = el("span", "confetti", pieces[i % pieces.length]);
+    p.style.left = Math.random() * 100 + "vw";
+    p.style.animationDuration = 1.8 + Math.random() * 1.6 + "s";
+    p.style.animationDelay = Math.random() * 0.5 + "s";
+    document.body.append(p);
+    setTimeout(() => p.remove(), 4500);
+  }
+}
+
+/* =====================================================================
+   12. START-UP: load the data, connect buttons, show the game
+   ===================================================================== */
+function setUpEvents() {
+  const input = document.getElementById("guessInput");
+  input.addEventListener("input", () => { picked = null; showSuggestions(); });
+  input.addEventListener("keydown", onInputKey);
+  input.addEventListener("blur", () => setTimeout(closeSuggestions, 100));
+  document.getElementById("guessBtn").addEventListener("click", submitGuess);
+
+  document.getElementById("modeBtn").addEventListener("click", () => {
+    mode === "daily" ? startPractice() : startDaily();
+  });
+
+  document.getElementById("langBtn").addEventListener("click", () => {
+    lang = lang === "en" ? "hi" : "en";
+    store.set("filmdle-lang", lang);
+    cluesShownBefore = cluesShown(); // don't re-animate clues on a language switch
+    renderAll();
+    if (document.getElementById("statsModal").open) renderStats();
+  });
+
+  const helpModal = document.getElementById("helpModal");
+  const statsModal = document.getElementById("statsModal");
+  document.getElementById("helpBtn").addEventListener("click", () => helpModal.showModal());
+  document.getElementById("statsBtn").addEventListener("click", () => { renderStats(); statsModal.showModal(); });
+
+  // Close popups with their ✕ / button, or by tapping the dark background
+  document.querySelectorAll("dialog").forEach(dialog => {
+    dialog.addEventListener("click", e => {
+      if (e.target === dialog || e.target.hasAttribute("data-close")) dialog.close();
+    });
+  });
+
+  setInterval(tick, 1000);
+}
+
+async function init() {
+  setUpEvents();
+  renderStaticText();
+  try {
+    const response = await fetch("movies.json");
+    movies = await response.json();
+  } catch (e) {
+    const box = document.getElementById("loadError");
+    box.textContent = t("loadError");
+    box.hidden = false;
+    document.querySelectorAll("main > :not(#loadError)").forEach(n => (n.hidden = true));
+    return;
+  }
+  movies.forEach(m => (movieById[m.id] = m));
+  startDaily();
+
+  // Show "How to play" automatically on the very first visit
+  if (!store.get("filmdle-seen-help", false)) {
+    document.getElementById("helpModal").showModal();
+    store.set("filmdle-seen-help", true);
+  }
+}
+
+init();
+</script>
+</body>
+</html>
