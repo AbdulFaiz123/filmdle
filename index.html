@@ -351,6 +351,8 @@
         align-items: start;
       }
       .mode-bar, #loadError { grid-column: 1 / -1; }
+      /* Without this, a grid column grows to fit the long letter row and the page scrolls sideways */
+      .col-left, .col-right { min-width: 0; }
       .top-bar, footer { max-width: 1100px; }
       .marquee { padding: 16px 16px 12px; }
     }
