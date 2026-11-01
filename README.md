@@ -81,9 +81,13 @@ after midnight India time, so nobody's game changes halfway through their day.
 
 1. On the Fire TV, open the **Silk Browser** (install it from the Appstore if it's missing).
 2. Type the game's address, for example `abdulfaiz123.github.io/filmdle`, and bookmark it.
-3. Use the remote: **arrow buttons** move between buttons, the **middle (OK) button** selects.
-   Select the search box to bring up the on-screen keyboard, type a few letters,
-   then press OK twice: once to pick the movie, once to guess.
+3. In Silk the remote moves an **on-screen pointer** and **OK** clicks. No typing needed:
+   the **Choose from a list** picker opens by itself on a Fire TV. Click a letter,
+   then click a movie **twice** (once to choose it, once to guess).
+
+Silk never sends arrow-key presses to web pages (only pointer moves and clicks), so
+the arrow-key navigation in the game only works on laptops, or inside a TV app that
+shows the page in a WebView.
 
 On big screens the game shows two columns (clues on the left, guesses on the
 right), and on a 1080p TV browser everything is zoomed up so it can be read from the sofa.
