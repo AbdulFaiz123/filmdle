@@ -186,6 +186,18 @@
     .clue.locked .num { background: var(--miss); }
     .clue.locked .value { font-weight: 600; font-size: .9rem; color: var(--muted); }
     .clue.fresh { animation: pop .45s ease-out; }
+    /* While the emoji font is still downloading, hide the emoji (they'd show as empty boxes)
+       and show three blinking dots instead */
+    html.emoji-loading .clue .value.emoji { visibility: hidden; position: relative; }
+    html.emoji-loading .clue .value.emoji::before {
+      content: "• • •";
+      visibility: visible;
+      position: absolute;
+      left: 0; top: 0;
+      color: var(--muted);
+      animation: blink 1s steps(2) infinite;
+    }
+    @keyframes blink { 50% { opacity: .3; } }
     @keyframes pop { 0% { transform: scale(.85); opacity: 0; } 70% { transform: scale(1.04); } 100% { transform: scale(1); opacity: 1; } }
 
     /* ===================================================================
@@ -218,6 +230,24 @@
     .suggestions li.active, .suggestions li:hover { background: var(--pink); color: #fff; }
     .suggestions li.active .alt, .suggestions li:hover .alt { color: #ffe0f0; }
     #guessCount { margin: 10px 0 0; }
+
+    /* "Choose from a list" picker (made for TV remotes) */
+    .browse-toggle { margin-top: 10px; font-size: .9rem; padding: 6px 14px; }
+    /* One single row that scrolls sideways, so ↓ on the remote always goes straight to the movies */
+    .letter-row { display: flex; gap: 6px; margin: 12px 0; padding: 6px 4px; overflow-x: auto; scrollbar-width: thin; }
+    .letter-btn {
+      flex: none;
+      min-width: 42px; height: 42px; padding: 0 6px;
+      border-radius: 10px; border: 2px solid var(--border);
+      background: var(--bg); color: var(--text); font-weight: 800;
+    }
+    .letter-btn.active { background: var(--purple); border-color: var(--purple); color: #fff; }
+    .movie-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+    .movie-btn {
+      padding: 10px 12px; border-radius: 12px; text-align: left;
+      border: 2px solid var(--border); background: var(--card); color: var(--text); font-weight: 600;
+    }
+    .movie-btn.picked { border-color: var(--pink); background: color-mix(in srgb, var(--pink) 15%, var(--card)); }
 
     /* ===================================================================
        7. PREVIOUS GUESSES (comparison tiles)
@@ -393,6 +423,13 @@
         <button id="guessBtn" class="btn primary" data-i18n="guess"></button>
       </div>
       <p id="guessCount" class="muted"></p>
+
+      <!-- No-typing picker for TV remotes: pick a letter, then a movie -->
+      <button id="browseBtn" class="btn ghost browse-toggle" aria-expanded="false" aria-controls="browsePanel"></button>
+      <div id="browsePanel" hidden>
+        <div id="letterRow" class="letter-row"></div>
+        <div id="movieGrid" class="movie-grid"></div>
+      </div>
     </section>
 
     <!-- Earlier guesses with their comparison tiles -->
@@ -454,6 +491,7 @@ const TEXT = {
     later: "The movie is later", earlier: "The movie is earlier",
     noShared: "None shared",
     emojiDecoded: "The emoji plot, decoded",
+    showList: "🔤 Choose from a list", hideList: "🔤 Hide the list",
     soundOn: "Sound on", soundOff: "Sound off",
     win: "You got it! 🎉",
     winIn: "Solved in {n}/{max}",
@@ -491,7 +529,7 @@ const TEXT = {
       <p><b>Year:</b> ⬆️ the movie came out later, ⬇️ earlier, 🟨 within 3 years.<br>
          <b>Genre:</b> 🟨 means some genres overlap.</p>
       <p>A new movie arrives every midnight (India time). Want more? Try <b>Practice</b> mode.</p>
-      <p>📺 <b>On a TV:</b> use the remote's arrow buttons to move around and the middle button to select. 🔊 turns the sounds on or off.</p>`
+      <p>📺 <b>On a TV:</b> no need to type. Use <b>Choose from a list</b>: move along the letters with the remote's arrows, press ↓ to a movie, then OK twice. 🔊 turns the sounds on or off.</p>`
   },
   hi: {
     tagline: "आज की बॉलीवुड फ़िल्म पहचानिए",
@@ -509,6 +547,7 @@ const TEXT = {
     later: "फ़िल्म बाद की है", earlier: "फ़िल्म पहले की है",
     noShared: "कोई साझा नहीं",
     emojiDecoded: "इमोजी कहानी का मतलब",
+    showList: "🔤 सूची से चुनें", hideList: "🔤 सूची छिपाएँ",
     soundOn: "आवाज़ चालू", soundOff: "आवाज़ बंद",
     win: "सही जवाब! 🎉",
     winIn: "{n}/{max} में हल किया",
@@ -546,7 +585,7 @@ const TEXT = {
       <p><b>वर्ष:</b> ⬆️ फ़िल्म बाद में आई, ⬇️ पहले आई, 🟨 तीन साल के अंदर।<br>
          <b>शैली:</b> 🟨 का मतलब कुछ शैलियाँ मिलती हैं।</p>
       <p>हर रात 12 बजे (भारतीय समय) नई फ़िल्म आती है। और खेलना है? <b>अभ्यास</b> मोड आज़माएँ।</p>
-      <p>📺 <b>टीवी पर:</b> रिमोट के तीर वाले बटन से चलें और बीच वाले बटन से चुनें। 🔊 से आवाज़ चालू या बंद करें।</p>`
+      <p>📺 <b>टीवी पर:</b> टाइप करने की ज़रूरत नहीं। <b>सूची से चुनें</b> दबाएँ: रिमोट के तीर से अक्षर चुनें, ↓ से फ़िल्म पर जाएँ, फिर दो बार OK दबाएँ। 🔊 से आवाज़ चालू या बंद करें।</p>`
   }
 };
 
@@ -742,6 +781,9 @@ function submitGuess() {
   if (!movie) { toast(t("notInList")); playSound("oops"); return; }
   if (game.guesses.includes(movie)) { toast(t("already")); playSound("oops"); return; }
 
+  // Did the guess come from the list (Guess button focused) rather than typing?
+  const fromList = browseOpen && document.activeElement && document.activeElement.id === "guessBtn";
+
   game.guesses.push(movie);
   if (movie === game.answer) game.status = "won";
   else if (game.guesses.length >= MAX_GUESSES) game.status = "lost";
@@ -758,7 +800,10 @@ function submitGuess() {
 
   if (game.status === "won") { confetti(); playSound("win"); }
   else if (game.status === "lost") playSound("lose");
-  else playSound("wrong");
+  else {
+    playSound("wrong");
+    if (fromList) focusActiveLetter(); // back to the letters, ready for the next pick
+  }
   if (game.status !== "playing") {
     document.getElementById("result").scrollIntoView({ behavior: "smooth", block: "start" });
   }
@@ -817,6 +862,7 @@ function renderAll() {
   renderModeBar();
   renderClues();
   renderGuessArea();
+  renderBrowse();
   renderHistory();
   renderResult();
 }
@@ -1073,6 +1119,78 @@ function onInputKey(e) {
   }
 }
 
+/* ---------------------------------------------------------------------
+   Picking from a list (no typing): made for TV remotes.
+   Moving onto a letter shows its movies; OK on a movie picks it and
+   jumps to the Guess button, so one more OK makes the guess.
+   --------------------------------------------------------------------- */
+
+// Fire TV devices put a model name starting with "AFT" in their user agent
+const IS_TV = /\bAFT|SmartTV|Android TV|BRAVIA|Tizen|Web0S/i.test(navigator.userAgent);
+let browseOpen = store.get("filmdle-browse", IS_TV); // open by default on TVs only
+let browseLetter = null;
+
+// "Dabangg" -> "D", "3 Idiots" -> "#"
+function firstLetter(movie) {
+  const c = normalize(movie.title)[0];
+  return /[a-z]/.test(c) ? c.toUpperCase() : "#";
+}
+
+function renderBrowse() {
+  const btn = document.getElementById("browseBtn");
+  btn.textContent = browseOpen ? t("hideList") : t("showList");
+  btn.setAttribute("aria-expanded", String(browseOpen));
+  document.getElementById("browsePanel").hidden = !browseOpen;
+  if (!browseOpen) return;
+
+  // Only letters that still have movies you haven't guessed
+  const available = movies.filter(m => !game.guesses.includes(m));
+  const letters = [...new Set(available.map(firstLetter))].sort();
+  if (!letters.includes(browseLetter)) browseLetter = letters[0] || null;
+
+  const row = document.getElementById("letterRow");
+  row.innerHTML = "";
+  letters.forEach(letter => {
+    const b = el("button", "letter-btn" + (letter === browseLetter ? " active" : ""), letter);
+    b.dataset.letter = letter;
+    b.addEventListener("focus", () => showLetter(letter)); // just landing on it is enough
+    b.addEventListener("click", () => showLetter(letter));
+    row.append(b);
+  });
+  renderMovieGrid();
+}
+
+function showLetter(letter) {
+  if (letter === browseLetter) return;
+  browseLetter = letter;
+  document.querySelectorAll(".letter-btn").forEach(b => b.classList.toggle("active", b.dataset.letter === letter));
+  renderMovieGrid();
+}
+
+function renderMovieGrid() {
+  const grid = document.getElementById("movieGrid");
+  grid.innerHTML = "";
+  movies
+    .filter(m => !game.guesses.includes(m) && firstLetter(m) === browseLetter)
+    .sort((a, b) => a.title.localeCompare(b.title))
+    .forEach(m => {
+      const b = el("button", "movie-btn" + (m === picked ? " picked" : ""), m.title);
+      b.addEventListener("click", () => {
+        picked = m;
+        document.getElementById("guessInput").value = m.title;
+        grid.querySelectorAll(".movie-btn").forEach(x => x.classList.toggle("picked", x === b));
+        playSound("pick");
+        document.getElementById("guessBtn").focus(); // the next OK press makes the guess
+      });
+      grid.append(b);
+    });
+}
+
+function focusActiveLetter() {
+  const b = document.querySelector(".letter-btn.active");
+  if (b) b.focus();
+}
+
 /* =====================================================================
    9. SHARING
    ===================================================================== */
@@ -1327,7 +1445,7 @@ function moveFocus(key) {
   }
   if (best) {
     best.focus();
-    best.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    best.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "smooth" });
   }
   return Boolean(best);
 }
@@ -1341,6 +1459,13 @@ function setUpEvents() {
   input.addEventListener("keydown", onInputKey);
   input.addEventListener("blur", () => setTimeout(closeSuggestions, 100));
   document.getElementById("guessBtn").addEventListener("click", submitGuess);
+
+  document.getElementById("browseBtn").addEventListener("click", () => {
+    browseOpen = !browseOpen;
+    store.set("filmdle-browse", browseOpen);
+    renderBrowse();
+    if (browseOpen) focusActiveLetter();
+  });
 
   document.getElementById("soundBtn").addEventListener("click", () => {
     soundOn = !soundOn;
@@ -1383,6 +1508,19 @@ function setUpEvents() {
   setInterval(tick, 1000);
 }
 
+// Some devices (like Fire TV Sticks) have no emoji of their own, so the page downloads an
+// emoji font. Until it has arrived, the CSS class "emoji-loading" hides the emoji clue.
+function waitForEmojiFont() {
+  if (!document.fonts || !document.fonts.load) return; // very old browser: just show what we have
+  const root = document.documentElement;
+  root.classList.add("emoji-loading");
+  const done = () => root.classList.remove("emoji-loading");
+  // Ask for every emoji used in the movie list, so practice games are ready too
+  const allEmoji = movies.flatMap(m => m.emojiPlot.map(([emoji]) => emoji)).join("");
+  const giveUp = new Promise(resolve => setTimeout(resolve, 10000)); // never wait more than 10 s
+  Promise.race([document.fonts.load('1em "Noto Color Emoji"', allEmoji), giveUp]).then(done, done);
+}
+
 async function init() {
   setUpEvents();
   renderStaticText();
@@ -1397,7 +1535,10 @@ async function init() {
     return;
   }
   movies.forEach(m => (movieById[m.id] = m));
+  waitForEmojiFont();
   startDaily();
+  // On a TV, start on the letter picker so the remote works straight away (no keyboard pops up)
+  if (IS_TV && browseOpen && game.status === "playing") focusActiveLetter();
 
   // Show "How to play" automatically on the very first visit
   if (!store.get("filmdle-seen-help", false)) {
