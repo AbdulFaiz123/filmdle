@@ -233,11 +233,10 @@
 
     /* "Choose from a list" picker (made for TV remotes) */
     .browse-toggle { margin-top: 10px; font-size: .9rem; padding: 6px 14px; }
-    /* One single row that scrolls sideways, so ↓ on the remote always goes straight to the movies */
-    .letter-row { display: flex; gap: 6px; margin: 12px 0; padding: 6px 4px; overflow-x: auto; scrollbar-width: thin; }
+    /* Letters in rows of 5, like a small keypad */
+    .letter-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin: 12px 0; }
     .letter-btn {
-      flex: none;
-      min-width: 42px; height: 42px; padding: 0 6px;
+      height: 44px;
       border-radius: 10px; border: 2px solid var(--border);
       background: var(--bg); color: var(--text); font-weight: 800;
     }
@@ -749,11 +748,17 @@ function startDaily() {
 
 function startPractice() {
   mode = "practice";
-  // Any random movie, but not the same one as last time
-  let answer;
-  do {
-    answer = movies[Math.floor(Math.random() * movies.length)];
-  } while (movies.length > 1 && game && answer === game.answer);
+  // Never repeat: pick from movies you haven't had in practice yet (and never today's daily movie).
+  // Once you've seen them all, the list starts over.
+  const today = dailyMovie(todayIndex());
+  let seen = store.get("filmdle-practice-seen", []);
+  let fresh = movies.filter(m => m !== today && !seen.includes(m.id));
+  if (fresh.length === 0) {
+    seen = [];
+    fresh = movies.filter(m => m !== today && m !== (game && game.answer));
+  }
+  const answer = fresh[Math.floor(Math.random() * fresh.length)];
+  store.set("filmdle-practice-seen", [...seen, answer.id]);
   game = { answer, guesses: [], status: "playing" };
   cluesShownBefore = 1;
   renderAll();
@@ -1158,8 +1163,12 @@ function renderBrowse() {
   letters.forEach(letter => {
     const b = el("button", "letter-btn" + (letter === browseLetter ? " active" : ""), letter);
     b.dataset.letter = letter;
-    b.addEventListener("focus", () => showLetter(letter)); // just landing on it is enough
-    b.addEventListener("click", () => showLetter(letter));
+    // OK (or a click) chooses the letter and jumps to its first movie.
+    // Just moving over a letter does nothing, so ↓ can pass through the rows of letters.
+    b.addEventListener("click", () => {
+      showLetter(letter);
+      document.querySelector("#movieGrid .movie-btn")?.focus();
+    });
     row.append(b);
   });
   renderMovieGrid();

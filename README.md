@@ -4,7 +4,7 @@ A daily Bollywood movie guessing game. Like Wordle, but you guess the movie of t
 
 - One secret movie per day, the same for everyone, changing at midnight India time.
 - 6 guesses. Each wrong guess unlocks a new clue and shows comparison tiles.
-- 60 well-known Hindi films from 2000 to 2025.
+- 133 well-known Hindi films from 2000 to 2025. Practice mode never repeats a film until you have seen them all.
 - Stats, streaks, a share button for WhatsApp, a practice mode, and English / हिंदी.
 - Funny filmi sound effects (made in code, with a mute button) and TV-remote controls.
 
@@ -127,7 +127,7 @@ redeploys by itself.
 - **Same movie for everyone, no server:** the game counts days since launch in
   India time. It shuffles the movie list with a *seeded* random generator, so
   everyone's browser produces the same shuffle, and day N gets movie N of that
-  shuffle. After all 60 movies, it moves on to a new shuffle, so nothing repeats
+  shuffle. After all the movies, it moves on to a new shuffle, so nothing repeats
   until the whole list has been played.
 - **Saving:** your progress for today, your stats and your language are stored
   in your browser's `localStorage`. Nothing is sent anywhere.
