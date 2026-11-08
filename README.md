@@ -79,15 +79,45 @@ after midnight India time, so nobody's game changes halfway through their day.
 
 ## Play on a Fire TV
 
+### Best: the Filmdle app (`firetv/`)
+
+A tiny Android TV app that shows the game full-screen. Inside the app the remote
+works like any TV app: **arrows** move, **OK** selects, **Back** closes popups.
+The app loads the live website, so new movies and fixes appear without reinstalling.
+
+Install it from your Mac over Wi-Fi (one-time setup on the TV: **Settings → My Fire TV →
+About**, press OK on the device name 7 times, then **Developer options → ADB debugging: ON**;
+find the TV's IP under **About → Network**):
+
+```bash
+brew install --cask android-commandlinetools openjdk@21
+```
+
+```bash
+cd firetv && JAVA_HOME=$(/usr/libexec/java_home -v 21) ANDROID_HOME=/opt/homebrew/share/android-commandlinetools ./gradlew assembleDebug
+```
+
+```bash
+adb connect 192.168.1.232:5555 && adb install -r firetv/app/build/outputs/apk/debug/app-debug.apk
+```
+
+Replace the IP with your TV's. On macOS 15+, if `adb connect` says "No route to host",
+allow your terminal app in **System Settings → Privacy & Security → Local Network** and
+restart it. Filmdle then appears under **Apps** on the Fire TV home screen.
+
+How to play with the remote: arrows to a letter, **OK** (jumps to its movies), arrows to
+a movie, then **OK twice** (once to choose, once to guess).
+
+### Without installing: the Silk Browser
+
 1. On the Fire TV, open the **Silk Browser** (install it from the Appstore if it's missing).
 2. Type the game's address, for example `abdulfaiz123.github.io/filmdle`, and bookmark it.
 3. In Silk the remote moves an **on-screen pointer** and **OK** clicks. No typing needed:
    the **Choose from a list** picker opens by itself on a Fire TV. Click a letter,
    then click a movie **twice** (once to choose it, once to guess).
 
-Silk never sends arrow-key presses to web pages (only pointer moves and clicks), so
-the arrow-key navigation in the game only works on laptops, or inside a TV app that
-shows the page in a WebView.
+Silk never sends arrow-key presses to web pages (only pointer moves and clicks), which
+is why the app above is the nicer way to play.
 
 On big screens the game shows two columns (clues on the left, guesses on the
 right), and on a 1080p TV browser everything is zoomed up so it can be read from the sofa.

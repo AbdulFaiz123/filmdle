@@ -1,1 +1,6 @@
 .DS_Store
+# Fire TV app build output and machine-specific settings
+firetv/.gradle/
+firetv/build/
+firetv/app/build/
+firetv/local.properties

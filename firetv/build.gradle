@@ -1,0 +1,4 @@
+// Android Gradle plugin version (the tool that turns this project into an .apk)
+plugins {
+    id "com.android.application" version "8.11.0" apply false
+}

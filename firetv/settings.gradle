@@ -1,0 +1,16 @@
+// The Fire TV app is a tiny Android project with a single module, "app".
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+dependencyResolutionManagement {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+rootProject.name = "FilmdleTV"
+include ":app"

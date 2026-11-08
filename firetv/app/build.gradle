@@ -1,0 +1,23 @@
+plugins {
+    id "com.android.application"
+}
+
+android {
+    namespace "io.github.abdulfaiz123.filmdle"
+    compileSdk 36
+
+    defaultConfig {
+        applicationId "io.github.abdulfaiz123.filmdle"
+        minSdk 22        // Fire OS 5 and newer: every Fire TV Stick still in use
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+// No extra libraries: the app is one Java file that shows the web game in a WebView.
