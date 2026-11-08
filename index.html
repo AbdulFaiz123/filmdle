@@ -1135,8 +1135,8 @@ function onInputKey(e) {
    jumps to the Guess button, so one more OK makes the guess.
    --------------------------------------------------------------------- */
 
-// Fire TV devices put a model name starting with "AFT" in their user agent
-const IS_TV = /\bAFT|SmartTV|Android TV|BRAVIA|Tizen|Web0S/i.test(navigator.userAgent);
+// Fire TV devices put a model name starting with "AFT" in their user agent; our TV app adds "FilmdleTV"
+const IS_TV = /\bAFT|FilmdleTV|SmartTV|Android TV|BRAVIA|Tizen|Web0S/i.test(navigator.userAgent);
 let browseOpen = store.get("filmdle-browse", IS_TV); // open by default on TVs only
 let browseLetter = null;
 
